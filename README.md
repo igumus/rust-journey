@@ -12,6 +12,7 @@ This repository documents my learning process and progress as I delve into the w
 
 ## Crates
 
+- [sketch](./sketch/): Simple project for experimenting rust language fundamentals.
 - [jinspect](./jinspect/README.md): Simple project for analyzing java class files.
 
 ## Resources/References
