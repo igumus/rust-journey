@@ -4,7 +4,8 @@ Simple project to analyze Java class file structure for educational purposes.
 
 ## Objectives
 - Learning internals of java class file structure.
-- File IO, Enums, binary operations in RUST
+- File IO, Enums, binary operations in Rust
+- Using command line arguments
 - ...
 
 ## Quick Start
