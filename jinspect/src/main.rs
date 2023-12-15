@@ -104,43 +104,6 @@ impl fmt::Display for ConstantPool {
     }
 }
 
-#[derive(Debug)]
-struct Attribute {
-    name: String,
-    data: Vec<u8>,
-}
-
-impl fmt::Display for Attribute {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(
-            f,
-            "Attribute => NameIndex: {}, Lenght: {}",
-            self.name,
-            self.data.len()
-        )
-    }
-}
-
-struct Method {
-    access_flags: u16,
-    name: String,
-    descriptor: String,
-    attributes: Vec<Attribute>,
-}
-
-impl fmt::Display for Method {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        writeln!(
-            f,
-            "Method => Flags: {}, Name: {}, Desc: {}, AttrCount: {}",
-            self.access_flags,
-            self.name,
-            self.descriptor,
-            self.attributes.len()
-        )
-    }
-}
-
 fn read_n(r: &mut BufReader<File>, limit: usize) -> Vec<u8> {
     let mut buf = Vec::<u8>::with_capacity(limit);
     for _i in 0..limit {
