@@ -10,5 +10,10 @@ This repository documents my learning process and progress as I delve into the w
 
 [Rust](https://www.rust-lang.org/) is a systems programming language that focuses on performance, reliability, and productivity. It's designed to be fast, concurrent, and memory-efficient, making it suitable for a wide range of applications, from low-level system programming to high-level web development.
 
+## Crates
+
+- [sketch](./sketch/): Simple project for experimenting rust language fundamentals.
+- [jinspect](./jinspect/README.md): Simple project for analyzing java class files.
+
 ## Resources/References
 TODO
