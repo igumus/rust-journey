@@ -39,6 +39,32 @@ enum ConstantPool {
 }
 
 impl ConstantPool {
+    fn resolve(&self, pool: &Vec<ConstantPool>) -> String {
+        match self {
+            Self::Utf8(c) => c.to_string(),
+            Self::Unknown(c) => format!("Unknown({})", c),
+            Self::Integer(c) => format!("{}", c),
+            Self::Float(c) => format!("{}", c),
+            Self::Long(c1, c2) => format!("H:{},L:{}", c1, c2),
+            Self::Double(c1, c2) => format!("H:{},L:{}", c1, c2),
+            Self::Class(index) | Self::String(index) | Self::MethodType(index) => {
+                let item = &pool[(index - 1) as usize];
+                item.resolve(pool)
+            }
+            Self::NameAndType(name_index, type_index) => {
+                let n = &pool[(name_index - 1) as usize];
+                let t = &pool[(type_index - 1) as usize];
+                format!("{} {}", n.resolve(pool), t.resolve(pool))
+            }
+            Self::Field(name_index, type_index) => {
+                let n = &pool[(name_index - 1) as usize];
+                let t = &pool[(type_index - 1) as usize];
+                format!("Field: {} {}", n.resolve(pool), t.resolve(pool))
+            }
+            _ => "not implemented yet".to_string(),
+        }
+    }
+
     fn as_type(&self) -> String {
         match self {
             Self::Utf8(_) => return "UTF8".to_string(),
@@ -343,6 +369,28 @@ fn parse_methods(reader: &mut BufReader<File>, pool: &Vec<ConstantPool>) {
     }
 }
 
+fn parse_this_class(
+    reader: &mut BufReader<File>,
+    pool: &Vec<ConstantPool>,
+) -> Option<ConstantPool> {
+    let class_index = read_u16(reader);
+    if let Some(ConstantPool::Class(_)) = pool.get((class_index - 1) as usize) {
+        return Some(ConstantPool::Class(class_index));
+    }
+    None
+}
+
+fn parse_super_class(
+    reader: &mut BufReader<File>,
+    pool: &Vec<ConstantPool>,
+) -> Option<ConstantPool> {
+    let class_index = read_u16(reader);
+    if let Some(ConstantPool::Class(_)) = pool.get((class_index - 1) as usize) {
+        return Some(ConstantPool::Class(class_index));
+    }
+    None
+}
+
 fn main() {
     let matches = Command::new("jinspect")
         .version("0.1.0")
@@ -412,11 +460,15 @@ fn main() {
                     println!("    - Enum");
                 }
             }
-            let this_class = read_u16(&mut reader);
-            let super_class = read_u16(&mut reader);
-            if verbose {
-                println!("INFO: ThisClass= {}", this_class);
-                println!("INFO: SuperClass= {}", super_class);
+            if let Some(this_class) = parse_this_class(&mut reader, &constant_pool) {
+                if verbose {
+                    println!("INFO: ThisClass= {}", this_class.resolve(&constant_pool));
+                }
+                if let Some(super_class) = parse_super_class(&mut reader, &constant_pool) {
+                    if verbose {
+                        println!("INFO: SuperClass= {}", super_class.resolve(&constant_pool));
+                    }
+                }
             }
 
             parse_interfaces(&mut reader, verbose);
