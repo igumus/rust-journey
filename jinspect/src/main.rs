@@ -51,9 +51,7 @@ fn parse_attributes(reader: &mut BufReader<File>, pool: &ConstantPool, internal:
     }
     for i in 0..count {
         let name_index = read_u16(reader);
-        let constant = pool.get(name_index);
-
-        let name = constant.as_value();
+        let name = pool.resolve(name_index);
         let length = read_u32(reader);
         if name == "Code" {
             let max_stack = read_u16(reader);
@@ -85,7 +83,7 @@ fn parse_attributes(reader: &mut BufReader<File>, pool: &ConstantPool, internal:
             }
         } else if name == "SourceFile" {
             let source_file_index = read_u16(reader);
-            let source_file_name = pool.get(source_file_index).as_value();
+            let source_file_name = pool.resolve(source_file_index);
             if !internal {
                 println!("    Attribute: {:02} - SourceFile: {}", i, source_file_name);
             } else {
@@ -133,12 +131,12 @@ fn parse_methods(reader: &mut BufReader<File>, pool: &ConstantPool) {
     for i in 0..count {
         let access_flags: u16 = read_u16(reader);
         let name_index = read_u16(reader);
-        let constant = pool.get(name_index);
-        let name = constant.as_value();
+        let name = pool.resolve(name_index);
         let desc_index = read_u16(reader);
+        let desc = pool.resolve(desc_index);
         println!(
             "    Method: {:02} - AF: {}, Name: {} DI: {}",
-            i, access_flags, name, desc_index
+            i, access_flags, name, desc
         );
         parse_attributes(reader, pool, true);
     }
