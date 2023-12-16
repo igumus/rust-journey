@@ -19,7 +19,7 @@ const CONSTANTPOOL_METHODHANDLE: u8 = 15;
 const CONSTANTPOOL_METHODTYPE: u8 = 16;
 const CONSTANTPOOL_INVOKEDYNAMIC: u8 = 18;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum ConstantPoolItem {
     Unknown(u8),
     Utf8(String),              // bytes/content

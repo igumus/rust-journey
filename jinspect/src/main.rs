@@ -2,9 +2,9 @@ use clap::{Arg, ArgAction, Command};
 use std::fs::File;
 use std::io::BufReader;
 
-mod cpool;
+mod pool;
 mod reader;
-use crate::cpool::{ConstantPool, ConstantPoolItem};
+use crate::pool::{ConstantPool, ConstantPoolItem};
 use crate::reader::{read_n, read_u16, read_u32};
 
 struct Header(u32, u16, u16);
