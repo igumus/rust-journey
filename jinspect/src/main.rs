@@ -28,17 +28,14 @@ impl Header {
     }
 }
 
-fn parse_interfaces(reader: &mut BufReader<File>, debug: bool) {
-    let interfaces_count = read_u16(reader);
-    if debug {
-        println!("INFO: Interfaces= {}", interfaces_count);
+fn parse_interfaces(reader: &mut BufReader<File>, pool: &ConstantPool) -> Vec<String> {
+    let count = read_u16(reader);
+    let mut acc = Vec::<String>::with_capacity(count as usize);
+    for _ in 0..count {
+        let index = read_u16(reader);
+        acc.push(pool.resolve(index));
     }
-    for i in 0..interfaces_count {
-        let name_index = read_u16(reader);
-        if debug {
-            print!("    INTERFACE: {:02} - NameIndex: {}", i, name_index);
-        }
-    }
+    acc
 }
 
 fn parse_attributes(reader: &mut BufReader<File>, pool: &ConstantPool, internal: bool) {
@@ -139,6 +136,7 @@ fn parse_methods(reader: &mut BufReader<File>, pool: &ConstantPool) {
     }
 }
 
+// TODO: should not return an option
 fn parse_this_class(reader: &mut BufReader<File>, pool: &ConstantPool) -> Option<ConstantPoolItem> {
     let class_index = read_u16(reader);
     if let &ConstantPoolItem::Class(_) = pool.get(class_index) {
@@ -147,6 +145,7 @@ fn parse_this_class(reader: &mut BufReader<File>, pool: &ConstantPool) -> Option
     None
 }
 
+// TODO: should not return an option
 fn parse_super_class(
     reader: &mut BufReader<File>,
     pool: &ConstantPool,
@@ -188,6 +187,10 @@ fn main() {
             let acc_class = AccessFlag::parse_class_level(&mut reader);
             let this_class = parse_this_class(&mut reader, &constant_pool);
             let super_class = parse_super_class(&mut reader, &constant_pool);
+            let interfaces = parse_interfaces(&mut reader, &constant_pool);
+            parse_fields(&mut reader, &constant_pool, verbose);
+            parse_methods(&mut reader, &constant_pool);
+            parse_attributes(&mut reader, &constant_pool, false);
 
             if verbose {
                 header.print();
@@ -200,12 +203,12 @@ fn main() {
                         println!("INFO: SuperClass= {}", super_item.resolve(&constant_pool));
                     }
                 }
-            }
 
-            parse_interfaces(&mut reader, verbose);
-            parse_fields(&mut reader, &constant_pool, verbose);
-            parse_methods(&mut reader, &constant_pool);
-            parse_attributes(&mut reader, &constant_pool, false);
+                println!("INFO: Interfaces= {}", interfaces.capacity());
+                for (i, item) in interfaces.iter().enumerate() {
+                    println!("    {:02} - {}", i, item);
+                }
+            }
         }
         Err(e) => {
             eprintln!("ERROR: could not open file: {file_path}: {e}");
