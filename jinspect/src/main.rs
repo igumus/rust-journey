@@ -184,25 +184,20 @@ fn main() {
             let mut reader = BufReader::new(file);
 
             let header = Header::from(&mut reader);
+            let constant_pool = ConstantPool::from(&mut reader);
+            let acc_class = AccessFlag::parse_class_level(&mut reader);
+            let this_class = parse_this_class(&mut reader, &constant_pool);
+            let super_class = parse_super_class(&mut reader, &constant_pool);
+
             if verbose {
                 header.print();
-            }
-            let constant_pool = ConstantPool::from(&mut reader);
-            if verbose {
                 constant_pool.print();
-            }
-
-            let acc_class = AccessFlag::parse_class_level(&mut reader);
-            if verbose {
                 acc_class.print();
-            }
-            if let Some(this_class) = parse_this_class(&mut reader, &constant_pool) {
-                if verbose {
-                    println!("INFO: ThisClass= {}", this_class.resolve(&constant_pool));
-                }
-                if let Some(super_class) = parse_super_class(&mut reader, &constant_pool) {
-                    if verbose {
-                        println!("INFO: SuperClass= {}", super_class.resolve(&constant_pool));
+
+                if let Some(this_item) = this_class {
+                    println!("INFO: ThisClass= {}", this_item.resolve(&constant_pool));
+                    if let Some(super_item) = super_class {
+                        println!("INFO: SuperClass= {}", super_item.resolve(&constant_pool));
                     }
                 }
             }
