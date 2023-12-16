@@ -102,33 +102,6 @@ impl ConstantPoolItem {
             _ => "not implemented yet".to_string(),
         }
     }
-
-    // pub fn as_typed(&self) -> String {
-    //     match self {
-    //         Self::Utf8(_) => return "UTF8".to_string(),
-    //         Self::Class(_) => return "CLASS".to_string(),
-    //         Self::String(_) => return "STRING".to_string(),
-    //         Self::Field(_, _) => return "FIELD".to_string(),
-    //         Self::Method(_, _) => return "METHOD".to_string(),
-    //         Self::NameAndType(_, _) => return "NAME_AND_TYPE".to_string(),
-    //         Self::InterfaceMethod(_, _) => return "INTERFACE_METHOD".to_string(),
-    //         Self::MethodHandle(_, _) => return "METHOD_HANDLE".to_string(),
-    //         Self::MethodType(_) => return "METHOD_TYPE".to_string(),
-    //         Self::InvokeDynamic(_, _) => return "INVOKE_DYNAMIC".to_string(),
-    //         Self::Integer(_) => return "INTEGER".to_string(),
-    //         Self::Float(_) => return "FLOAT".to_string(),
-    //         Self::Long(_, _) => return "LONG".to_string(),
-    //         Self::Double(_, _) => return "DOUBLE".to_string(),
-    //         Self::Unknown(_) => return "UNKNOWN".to_string(),
-    //     }
-    // }
-
-    // pub fn as_values(&self) -> String {
-    //     match self {
-    //         Self::Utf8(content) => content.clone(),
-    //         _ => self.as_type(),
-    //     }
-    // }
 }
 
 pub struct ConstantPool(Vec<ConstantPoolItem>);
