@@ -1,8 +1,10 @@
 use clap::{Arg, ArgAction, Command};
 use std::fmt;
 use std::fs::File;
-use std::io::{BufReader, Read};
-use std::str;
+use std::io::BufReader;
+
+mod reader;
+use crate::reader::{read_n, read_str, read_u16, read_u32, read_u8};
 
 const CONSTANTPOOL_UTF8: u8 = 1;
 const CONSTANTPOOL_INTEGER: u8 = 3;
@@ -131,42 +133,10 @@ impl fmt::Display for ConstantPool {
     }
 }
 
-fn read_n(r: &mut BufReader<File>, limit: usize) -> Vec<u8> {
-    let mut buf = Vec::<u8>::with_capacity(limit);
-    for _i in 0..limit {
-        buf.push(0);
-    }
-    let _ = r.read_exact(&mut buf);
-    buf
-}
-
-fn read_u8(r: &mut BufReader<File>) -> u8 {
-    let mut buf: [u8; 1] = [0; 1];
-    let _ = r.read_exact(&mut buf);
-    u8::from_be_bytes(buf)
-}
-
-fn read_u16(r: &mut BufReader<File>) -> u16 {
-    let mut buf: [u8; 2] = [0; 2];
-    let _ = r.read_exact(&mut buf);
-    u16::from_be_bytes(buf)
-}
-
-fn read_u32(r: &mut BufReader<File>) -> u32 {
-    let mut buf: [u8; 4] = [0; 4];
-    let _ = r.read_exact(&mut buf);
-    u32::from_be_bytes(buf)
-}
-
-fn read_str(r: &mut BufReader<File>, length: usize) -> String {
-    let buf = read_n(r, length);
-    str::from_utf8(&buf).unwrap().to_string()
-}
-
-fn parse_header(reader: &mut BufReader<File>) -> (u32, u16, u16) {
-    let magic = read_u32(reader);
-    let minor = read_u16(reader);
-    let major = read_u16(reader);
+fn parse_header(rdr: &mut BufReader<File>) -> (u32, u16, u16) {
+    let magic = read_u32(rdr);
+    let minor = read_u16(rdr);
+    let major = read_u16(rdr);
     (magic, major, minor)
 }
 
