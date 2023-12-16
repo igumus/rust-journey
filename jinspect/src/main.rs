@@ -4,7 +4,7 @@ use std::io::BufReader;
 
 mod cpool;
 mod reader;
-use crate::cpool::{parse_constant_pool, ConstantPool};
+use crate::cpool::{ConstantPool, ConstantPoolItem};
 use crate::reader::{read_n, read_u16, read_u32};
 
 struct Header(u32, u16, u16);
@@ -44,14 +44,14 @@ fn parse_class_access_flags(reader: &mut BufReader<File>) -> u16 {
     access_flags
 }
 
-fn parse_attributes(reader: &mut BufReader<File>, pool: &Vec<ConstantPool>, internal: bool) {
+fn parse_attributes(reader: &mut BufReader<File>, pool: &ConstantPool, internal: bool) {
     let count = read_u16(reader);
     if !internal {
         println!("INFO: Attributes= {}", count);
     }
     for i in 0..count {
         let name_index = read_u16(reader);
-        let constant = pool.get((name_index - 1) as usize).unwrap();
+        let constant = pool.get(name_index);
 
         let name = constant.as_value();
         let length = read_u32(reader);
@@ -85,10 +85,7 @@ fn parse_attributes(reader: &mut BufReader<File>, pool: &Vec<ConstantPool>, inte
             }
         } else if name == "SourceFile" {
             let source_file_index = read_u16(reader);
-            let source_file_name = pool
-                .get((source_file_index - 1) as usize)
-                .unwrap()
-                .as_value();
+            let source_file_name = pool.get(source_file_index).as_value();
             if !internal {
                 println!("    Attribute: {:02} - SourceFile: {}", i, source_file_name);
             } else {
@@ -111,7 +108,7 @@ fn parse_attributes(reader: &mut BufReader<File>, pool: &Vec<ConstantPool>, inte
     }
 }
 
-fn parse_fields(reader: &mut BufReader<File>, pool: &Vec<ConstantPool>, debug: bool) {
+fn parse_fields(reader: &mut BufReader<File>, pool: &ConstantPool, debug: bool) {
     let count = read_u16(reader);
     if debug {
         println!("INFO: Fields= {}", count);
@@ -130,13 +127,13 @@ fn parse_fields(reader: &mut BufReader<File>, pool: &Vec<ConstantPool>, debug: b
     }
 }
 
-fn parse_methods(reader: &mut BufReader<File>, pool: &Vec<ConstantPool>) {
+fn parse_methods(reader: &mut BufReader<File>, pool: &ConstantPool) {
     let count = read_u16(reader);
     println!("INFO: Methods= {}", count);
     for i in 0..count {
         let access_flags: u16 = read_u16(reader);
         let name_index = read_u16(reader);
-        let constant = pool.get((name_index - 1) as usize).unwrap();
+        let constant = pool.get(name_index);
         let name = constant.as_value();
         let desc_index = read_u16(reader);
         println!(
@@ -147,24 +144,21 @@ fn parse_methods(reader: &mut BufReader<File>, pool: &Vec<ConstantPool>) {
     }
 }
 
-fn parse_this_class(
-    reader: &mut BufReader<File>,
-    pool: &Vec<ConstantPool>,
-) -> Option<ConstantPool> {
+fn parse_this_class(reader: &mut BufReader<File>, pool: &ConstantPool) -> Option<ConstantPoolItem> {
     let class_index = read_u16(reader);
-    if let Some(ConstantPool::Class(_)) = pool.get((class_index - 1) as usize) {
-        return Some(ConstantPool::Class(class_index));
+    if let &ConstantPoolItem::Class(_) = pool.get(class_index) {
+        return Some(ConstantPoolItem::Class(class_index));
     }
     None
 }
 
 fn parse_super_class(
     reader: &mut BufReader<File>,
-    pool: &Vec<ConstantPool>,
-) -> Option<ConstantPool> {
+    pool: &ConstantPool,
+) -> Option<ConstantPoolItem> {
     let class_index = read_u16(reader);
-    if let Some(ConstantPool::Class(_)) = pool.get((class_index - 1) as usize) {
-        return Some(ConstantPool::Class(class_index));
+    if let &ConstantPoolItem::Class(_) = pool.get(class_index) {
+        return Some(ConstantPoolItem::Class(class_index));
     }
     None
 }
@@ -198,12 +192,9 @@ fn main() {
             if verbose {
                 header.print();
             }
-            let constant_pool = parse_constant_pool(&mut reader);
+            let constant_pool = ConstantPool::from(&mut reader);
             if verbose {
-                println!("INFO: ConstantPool= {:02}", constant_pool.capacity());
-                for (i, item) in constant_pool.iter().enumerate() {
-                    println!("    {:03} {}", (i + 1), item);
-                }
+                constant_pool.print();
             }
 
             let class_access_flags = parse_class_access_flags(&mut reader);

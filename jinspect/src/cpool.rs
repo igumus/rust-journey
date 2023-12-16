@@ -20,7 +20,7 @@ const CONSTANTPOOL_METHODTYPE: u8 = 16;
 const CONSTANTPOOL_INVOKEDYNAMIC: u8 = 18;
 
 #[derive(Debug)]
-pub enum ConstantPool {
+pub enum ConstantPoolItem {
     Unknown(u8),
     Utf8(String),              // bytes/content
     Class(u16),                // nameIndex
@@ -38,7 +38,7 @@ pub enum ConstantPool {
     Double(u32, u32),          // high, low bytes
 }
 
-impl fmt::Display for ConstantPool {
+impl fmt::Display for ConstantPoolItem {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::Utf8(content) => write!(f, "UTF8 => Value: {}", content),
@@ -76,8 +76,8 @@ impl fmt::Display for ConstantPool {
     }
 }
 
-impl ConstantPool {
-    pub fn resolve(&self, pool: &Vec<ConstantPool>) -> String {
+impl ConstantPoolItem {
+    pub fn resolve(&self, pool: &ConstantPool) -> String {
         match self {
             Self::Utf8(c) => c.to_string(),
             Self::Unknown(c) => format!("Unknown({})", c),
@@ -86,17 +86,17 @@ impl ConstantPool {
             Self::Long(c1, c2) => format!("H:{},L:{}", c1, c2),
             Self::Double(c1, c2) => format!("H:{},L:{}", c1, c2),
             Self::Class(index) | Self::String(index) | Self::MethodType(index) => {
-                let item = &pool[(index - 1) as usize];
+                let item = pool.get(index.clone());
                 item.resolve(pool)
             }
             Self::NameAndType(name_index, type_index) => {
-                let n = &pool[(name_index - 1) as usize];
-                let t = &pool[(type_index - 1) as usize];
+                let n = pool.get(name_index.clone());
+                let t = pool.get(type_index.clone());
                 format!("{} {}", n.resolve(pool), t.resolve(pool))
             }
             Self::Field(name_index, type_index) => {
-                let n = &pool[(name_index - 1) as usize];
-                let t = &pool[(type_index - 1) as usize];
+                let n = pool.get(name_index.clone());
+                let t = pool.get(type_index.clone());
                 format!("Field: {} {}", n.resolve(pool), t.resolve(pool))
             }
             _ => "not implemented yet".to_string(),
@@ -131,80 +131,95 @@ impl ConstantPool {
     }
 }
 
-pub fn parse_constant_pool(rdr: &mut BufReader<File>) -> Vec<ConstantPool> {
-    let constant_pool_count = reader::read_u16(rdr);
-    let mut ret = Vec::<ConstantPool>::with_capacity(constant_pool_count as usize);
-    for _ in 1..(constant_pool_count) {
-        let tag = reader::read_u8(rdr);
-        let item = match tag {
-            CONSTANTPOOL_CLASS => {
-                let index = reader::read_u16(rdr);
-                ConstantPool::Class(index)
-            }
-            CONSTANTPOOL_METHODREF => {
-                let class = reader::read_u16(rdr);
-                let nat = reader::read_u16(rdr);
-                ConstantPool::Method(class, nat)
-            }
-            CONSTANTPOOL_NAMEANDTYPE => {
-                let class = reader::read_u16(rdr);
-                let nat = reader::read_u16(rdr);
-                ConstantPool::NameAndType(class, nat)
-            }
-            CONSTANTPOOL_UTF8 => {
-                let length = reader::read_u16(rdr);
-                let value: String = reader::read_str(rdr, length as usize);
-                ConstantPool::Utf8(value)
-            }
-            CONSTANTPOOL_FIELDREF => {
-                let class = reader::read_u16(rdr);
-                let nat = reader::read_u16(rdr);
-                ConstantPool::Field(class, nat)
-            }
-            CONSTANTPOOL_INTERFACEMETHODREF => {
-                let class = reader::read_u16(rdr);
-                let nat = reader::read_u16(rdr);
-                ConstantPool::InterfaceMethod(class, nat)
-            }
-            CONSTANTPOOL_STRING => {
-                let class_index = reader::read_u16(rdr);
-                ConstantPool::String(class_index)
-            }
-            CONSTANTPOOL_INTEGER => {
-                let val = reader::read_u32(rdr);
-                ConstantPool::Integer(val)
-            }
-            CONSTANTPOOL_FLOAT => {
-                let val = reader::read_u32(rdr);
-                ConstantPool::Float(val)
-            }
-            CONSTANTPOOL_LONG => {
-                let high_val = reader::read_u32(rdr);
-                let low_val = reader::read_u32(rdr);
-                ConstantPool::Long(high_val, low_val)
-            }
-            CONSTANTPOOL_DOUBLE => {
-                let high_val = reader::read_u32(rdr);
-                let low_val = reader::read_u32(rdr);
-                ConstantPool::Double(high_val, low_val)
-            }
-            CONSTANTPOOL_METHODHANDLE => {
-                let kind = reader::read_u8(rdr);
-                let index = reader::read_u16(rdr);
-                ConstantPool::MethodHandle(kind, index)
-            }
-            CONSTANTPOOL_METHODTYPE => {
-                let index = reader::read_u16(rdr);
-                ConstantPool::MethodType(index)
-            }
-            CONSTANTPOOL_INVOKEDYNAMIC => {
-                let attr_index = reader::read_u16(rdr);
-                let name_and_type_index = reader::read_u16(rdr);
-                ConstantPool::InvokeDynamic(attr_index, name_and_type_index)
-            }
-            _ => ConstantPool::Unknown(tag),
-        };
-        ret.push(item);
+pub struct ConstantPool(Vec<ConstantPoolItem>);
+
+impl ConstantPool {
+    pub fn from(rdr: &mut BufReader<File>) -> Self {
+        let constant_pool_count = reader::read_u16(rdr);
+        let mut ret = Vec::<ConstantPoolItem>::with_capacity(constant_pool_count as usize);
+        for _ in 1..(constant_pool_count) {
+            let tag = reader::read_u8(rdr);
+            let item = match tag {
+                CONSTANTPOOL_CLASS => {
+                    let index = reader::read_u16(rdr);
+                    ConstantPoolItem::Class(index)
+                }
+                CONSTANTPOOL_METHODREF => {
+                    let class = reader::read_u16(rdr);
+                    let nat = reader::read_u16(rdr);
+                    ConstantPoolItem::Method(class, nat)
+                }
+                CONSTANTPOOL_NAMEANDTYPE => {
+                    let class = reader::read_u16(rdr);
+                    let nat = reader::read_u16(rdr);
+                    ConstantPoolItem::NameAndType(class, nat)
+                }
+                CONSTANTPOOL_UTF8 => {
+                    let length = reader::read_u16(rdr);
+                    let value: String = reader::read_str(rdr, length as usize);
+                    ConstantPoolItem::Utf8(value)
+                }
+                CONSTANTPOOL_FIELDREF => {
+                    let class = reader::read_u16(rdr);
+                    let nat = reader::read_u16(rdr);
+                    ConstantPoolItem::Field(class, nat)
+                }
+                CONSTANTPOOL_INTERFACEMETHODREF => {
+                    let class = reader::read_u16(rdr);
+                    let nat = reader::read_u16(rdr);
+                    ConstantPoolItem::InterfaceMethod(class, nat)
+                }
+                CONSTANTPOOL_STRING => {
+                    let class_index = reader::read_u16(rdr);
+                    ConstantPoolItem::String(class_index)
+                }
+                CONSTANTPOOL_INTEGER => {
+                    let val = reader::read_u32(rdr);
+                    ConstantPoolItem::Integer(val)
+                }
+                CONSTANTPOOL_FLOAT => {
+                    let val = reader::read_u32(rdr);
+                    ConstantPoolItem::Float(val)
+                }
+                CONSTANTPOOL_LONG => {
+                    let high_val = reader::read_u32(rdr);
+                    let low_val = reader::read_u32(rdr);
+                    ConstantPoolItem::Long(high_val, low_val)
+                }
+                CONSTANTPOOL_DOUBLE => {
+                    let high_val = reader::read_u32(rdr);
+                    let low_val = reader::read_u32(rdr);
+                    ConstantPoolItem::Double(high_val, low_val)
+                }
+                CONSTANTPOOL_METHODHANDLE => {
+                    let kind = reader::read_u8(rdr);
+                    let index = reader::read_u16(rdr);
+                    ConstantPoolItem::MethodHandle(kind, index)
+                }
+                CONSTANTPOOL_METHODTYPE => {
+                    let index = reader::read_u16(rdr);
+                    ConstantPoolItem::MethodType(index)
+                }
+                CONSTANTPOOL_INVOKEDYNAMIC => {
+                    let attr_index = reader::read_u16(rdr);
+                    let name_and_type_index = reader::read_u16(rdr);
+                    ConstantPoolItem::InvokeDynamic(attr_index, name_and_type_index)
+                }
+                _ => ConstantPoolItem::Unknown(tag),
+            };
+            ret.push(item);
+        }
+        ConstantPool(ret)
     }
-    ret
+
+    pub fn print(&self) {
+        println!("INFO: ConstantPool= {:02}", self.0.capacity());
+        for (i, item) in self.0.iter().enumerate() {
+            println!("    {:03} {}", (i + 1), item);
+        }
+    }
+
+    pub fn get(&self, index: u16) -> &ConstantPoolItem {
+        &self.0[(index - 1) as usize]
+    }
 }
