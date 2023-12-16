@@ -7,11 +7,23 @@ mod reader;
 use crate::cpool::{parse_constant_pool, ConstantPool};
 use crate::reader::{read_n, read_u16, read_u32};
 
-fn parse_header(rdr: &mut BufReader<File>) -> (u32, u16, u16) {
-    let magic = read_u32(rdr);
-    let minor = read_u16(rdr);
-    let major = read_u16(rdr);
-    (magic, major, minor)
+struct Header(u32, u16, u16);
+
+impl Header {
+    fn from(rdr: &mut BufReader<File>) -> Self {
+        let magic = read_u32(rdr);
+        let minor = read_u16(rdr);
+        let major = read_u16(rdr);
+        Header(magic, major, minor)
+    }
+
+    fn print(&self) {
+        println!("INFO: Header");
+        println!(
+            "    Magic= 0x{:X}, Major= {}, Minor= {}",
+            self.0, self.1, self.2
+        );
+    }
 }
 
 fn parse_interfaces(reader: &mut BufReader<File>, debug: bool) {
@@ -182,13 +194,9 @@ fn main() {
         Ok(file) => {
             let mut reader = BufReader::new(file);
 
-            let (magic, major, minor) = parse_header(&mut reader);
+            let header = Header::from(&mut reader);
             if verbose {
-                println!("INFO: Header");
-                println!(
-                    "    Magic= 0x{:X}, Major= {}, Minor= {}",
-                    magic, major, minor
-                );
+                header.print();
             }
             let constant_pool = parse_constant_pool(&mut reader);
             if verbose {
