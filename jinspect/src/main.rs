@@ -2,8 +2,10 @@ use clap::{Arg, ArgAction, Command};
 use std::fs::File;
 use std::io::BufReader;
 
+mod flag;
 mod pool;
 mod reader;
+use crate::flag::AccessFlag;
 use crate::pool::{ConstantPool, ConstantPoolItem};
 use crate::reader::{read_n, read_u16, read_u32};
 
@@ -37,11 +39,6 @@ fn parse_interfaces(reader: &mut BufReader<File>, debug: bool) {
             print!("    INTERFACE: {:02} - NameIndex: {}", i, name_index);
         }
     }
-}
-
-fn parse_class_access_flags(reader: &mut BufReader<File>) -> u16 {
-    let access_flags = read_u16(reader);
-    access_flags
 }
 
 fn parse_attributes(reader: &mut BufReader<File>, pool: &ConstantPool, internal: bool) {
@@ -106,13 +103,16 @@ fn parse_fields(reader: &mut BufReader<File>, pool: &ConstantPool, debug: bool) 
         println!("INFO: Fields= {}", count);
     }
     for i in 0..count {
-        let access_flags: u16 = read_u16(reader);
+        let flags = AccessFlag::parse_field_level(reader);
         let name_index = read_u16(reader);
         let desc_index = read_u16(reader);
         if debug {
             println!(
                 "    Field: {:02} - AF: {}, NI: {} DI: {}",
-                i, access_flags, name_index, desc_index
+                i,
+                flags.to_string(),
+                name_index,
+                desc_index
             );
         }
         parse_attributes(reader, pool, true);
@@ -123,14 +123,17 @@ fn parse_methods(reader: &mut BufReader<File>, pool: &ConstantPool) {
     let count = read_u16(reader);
     println!("INFO: Methods= {}", count);
     for i in 0..count {
-        let access_flags: u16 = read_u16(reader);
+        let flags = AccessFlag::parse_method_level(reader);
         let name_index = read_u16(reader);
         let name = pool.resolve(name_index);
         let desc_index = read_u16(reader);
         let desc = pool.resolve(desc_index);
         println!(
             "    Method: {:02} - AF: {}, Name: {} DI: {}",
-            i, access_flags, name, desc
+            i,
+            flags.to_string(),
+            name,
+            desc
         );
         parse_attributes(reader, pool, true);
     }
@@ -189,33 +192,9 @@ fn main() {
                 constant_pool.print();
             }
 
-            let class_access_flags = parse_class_access_flags(&mut reader);
+            let acc_class = AccessFlag::parse_class_level(&mut reader);
             if verbose {
-                println!("INFO: ClassAccessFlags= {}", class_access_flags);
-                if class_access_flags & 0x0001 == 0x0001 {
-                    println!("    - Public");
-                }
-                if class_access_flags & 0x0010 == 0x0010 {
-                    println!("    - Final");
-                }
-                if class_access_flags & 0x0020 == 0x0020 {
-                    println!("    - Super");
-                }
-                if class_access_flags & 0x0200 == 0x0200 {
-                    println!("    - Interface");
-                }
-                if class_access_flags & 0x0400 == 0x0400 {
-                    println!("    - Abstract");
-                }
-                if class_access_flags & 0x1000 == 0x1000 {
-                    println!("    - Synthetic");
-                }
-                if class_access_flags & 0x2000 == 0x2000 {
-                    println!("    - Annotation");
-                }
-                if class_access_flags & 0x4000 == 0x4000 {
-                    println!("    - Enum");
-                }
+                acc_class.print();
             }
             if let Some(this_class) = parse_this_class(&mut reader, &constant_pool) {
                 if verbose {
