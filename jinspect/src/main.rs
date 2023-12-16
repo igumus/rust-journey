@@ -54,10 +54,10 @@ fn parse_attributes(reader: &mut BufReader<File>, pool: &ConstantPool, internal:
         let name = pool.resolve(name_index);
         let length = read_u32(reader);
         if name == "Code" {
-            let max_stack = read_u16(reader);
-            let max_locals = read_u16(reader);
+            let _max_stack = read_u16(reader);
+            let _max_locals = read_u16(reader);
             let code_length = read_u32(reader);
-            let code = read_n(reader, code_length as usize);
+            let _code = read_n(reader, code_length as usize);
             let exception_table_len = read_u16(reader);
             for _ in 0..exception_table_len {
                 let _start_pc = read_u16(reader);
@@ -66,20 +66,14 @@ fn parse_attributes(reader: &mut BufReader<File>, pool: &ConstantPool, internal:
                 let _catch_type = read_u16(reader);
             }
 
-            println!(
-                "MaxStack: {}, MaxLocals: {}, CodeLen: {}, Array: {:?}",
-                max_stack, max_locals, code_length, code
-            );
+            // println!( "MaxStack: {}, MaxLocals: {}, CodeLen: {}, Array: {:?}", max_stack, max_locals, code_length, code);
             parse_attributes(reader, pool, true);
         } else if name == "LineNumberTable" {
             let lnt_length = read_u16(reader);
             for _ in 0..lnt_length {
-                let start_pc = read_u16(reader);
-                let line_number = read_u16(reader);
-                println!(
-                    "LineNumberTable= start: {}, lineNumber: {}",
-                    start_pc, line_number
-                );
+                let _start_pc = read_u16(reader);
+                let _line_number = read_u16(reader);
+                // println!( "LineNumberTable= start: {}, lineNumber: {}", start_pc, line_number);
             }
         } else if name == "SourceFile" {
             let source_file_index = read_u16(reader);
