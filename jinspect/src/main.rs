@@ -165,7 +165,7 @@ fn main() {
             Arg::new("file")
                 .short('f')
                 .long("file")
-                .default_value("App.class"),
+                .default_value("samples/App.class"),
         )
         .arg(
             Arg::new("verbose")
