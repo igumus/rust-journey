@@ -66,13 +66,11 @@ impl AccessFlag {
     }
 
     fn collect_to_string(&self, item: u16, coll: Iter<(&str, u16)>) -> String {
-        let mut acc = Vec::<String>::new();
-        for (caption, mask) in coll {
-            if item & *mask == *mask {
-                acc.push(caption.to_string())
-            }
-        }
-        acc.join(";")
+        let ret: Vec<String> = coll
+            .filter(|(_, mask)| item & *mask == *mask)
+            .map(|(caption, _)| caption.to_string())
+            .collect();
+        ret.join(";")
     }
 
     pub fn to_string(&self) -> String {
