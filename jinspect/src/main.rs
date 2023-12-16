@@ -1,3 +1,4 @@
+use clap::{Arg, ArgAction, Command};
 use std::fmt;
 use std::fs::File;
 use std::io::{BufReader, Read};
@@ -136,25 +137,17 @@ fn read_str(r: &mut BufReader<File>, length: usize) -> String {
     str::from_utf8(&buf).unwrap().to_string()
 }
 
-fn parse_header(reader: &mut BufReader<File>, debug: bool) {
+fn parse_header(reader: &mut BufReader<File>) -> (u32, u16, u16) {
     let magic = read_u32(reader);
     let minor = read_u16(reader);
     let major = read_u16(reader);
-    if debug {
-        println!(
-            "INFO: Magic= 0x{:X}, Major= {}, Minor= {}",
-            magic, major, minor
-        );
-    }
+    (magic, major, minor)
 }
 
-fn parse_constant_pool(reader: &mut BufReader<File>, debug: bool) -> Vec<ConstantPool> {
+fn parse_constant_pool(reader: &mut BufReader<File>) -> Vec<ConstantPool> {
     let constant_pool_count = read_u16(reader);
     let mut ret = Vec::<ConstantPool>::with_capacity(constant_pool_count as usize);
-    if debug {
-        println!("INFO: ConstantPool= {:02}", constant_pool_count);
-    }
-    for i in 1..(constant_pool_count) {
+    for _ in 1..(constant_pool_count) {
         let tag = read_u8(reader);
         let item = match tag {
             CONSTANTPOOL_CLASS => {
@@ -224,9 +217,6 @@ fn parse_constant_pool(reader: &mut BufReader<File>, debug: bool) -> Vec<Constan
             }
             _ => ConstantPool::Unknown(tag),
         };
-        if debug {
-            println!(" {:03} {}", i, item);
-        }
         ret.push(item);
     }
     ret
@@ -245,35 +235,9 @@ fn parse_interfaces(reader: &mut BufReader<File>, debug: bool) {
     }
 }
 
-fn parse_class_access_flags(reader: &mut BufReader<File>, debug: bool) {
+fn parse_class_access_flags(reader: &mut BufReader<File>) -> u16 {
     let access_flags = read_u16(reader);
-    if debug {
-        println!("INFO: AccessFlags= {}", access_flags);
-        if access_flags & 0x0001 != 0 {
-            println!("    - Public");
-        }
-        if access_flags & 0x0010 != 0 {
-            println!("    - Final");
-        }
-        if access_flags & 0x0020 != 0 {
-            println!("    - Super");
-        }
-        if access_flags & 0x0200 != 0 {
-            println!("    - Interface");
-        }
-        if access_flags & 0x0400 != 0 {
-            println!("    - Abstract");
-        }
-        if access_flags & 0x1000 != 0 {
-            println!("    - Synthetic");
-        }
-        if access_flags & 0x2000 != 0 {
-            println!("    - Annotation");
-        }
-        if access_flags & 0x4000 != 0 {
-            println!("    - Enum");
-        }
-    }
+    access_flags
 }
 
 fn parse_attributes(reader: &mut BufReader<File>, pool: &Vec<ConstantPool>, internal: bool) {
@@ -380,26 +344,83 @@ fn parse_methods(reader: &mut BufReader<File>, pool: &Vec<ConstantPool>) {
 }
 
 fn main() {
-    let file_path = "App.class";
-    let result = File::open(file_path);
-    match result {
+    let matches = Command::new("jinspect")
+        .version("0.1.0")
+        .about("inspects java class files")
+        .arg(
+            Arg::new("file")
+                .short('f')
+                .long("file")
+                .default_value("App.class"),
+        )
+        .arg(
+            Arg::new("verbose")
+                .short('v')
+                .long("verbose")
+                .action(ArgAction::SetTrue),
+        )
+        .get_matches();
+
+    let file_path = matches.get_one::<String>("file").expect("required");
+    let verbose = matches.get_flag("verbose");
+
+    match File::open(file_path) {
         Ok(file) => {
-            let debug = false;
             let mut reader = BufReader::new(file);
 
-            parse_header(&mut reader, debug);
-            let constant_pool = parse_constant_pool(&mut reader, !debug);
+            let (magic, major, minor) = parse_header(&mut reader);
+            if verbose {
+                println!("INFO: Header");
+                println!(
+                    "    Magic= 0x{:X}, Major= {}, Minor= {}",
+                    magic, major, minor
+                );
+            }
+            let constant_pool = parse_constant_pool(&mut reader);
+            if verbose {
+                println!("INFO: ConstantPool= {:02}", constant_pool.capacity());
+                for (i, item) in constant_pool.iter().enumerate() {
+                    println!("    {:03} {}", (i + 1), item);
+                }
+            }
 
-            parse_class_access_flags(&mut reader, debug);
+            let class_access_flags = parse_class_access_flags(&mut reader);
+            if verbose {
+                println!("INFO: ClassAccessFlags= {}", class_access_flags);
+                if class_access_flags & 0x0001 == 0x0001 {
+                    println!("    - Public");
+                }
+                if class_access_flags & 0x0010 == 0x0010 {
+                    println!("    - Final");
+                }
+                if class_access_flags & 0x0020 == 0x0020 {
+                    println!("    - Super");
+                }
+                if class_access_flags & 0x0200 == 0x0200 {
+                    println!("    - Interface");
+                }
+                if class_access_flags & 0x0400 == 0x0400 {
+                    println!("    - Abstract");
+                }
+                if class_access_flags & 0x1000 == 0x1000 {
+                    println!("    - Synthetic");
+                }
+                if class_access_flags & 0x2000 == 0x2000 {
+                    println!("    - Annotation");
+                }
+                if class_access_flags & 0x4000 == 0x4000 {
+                    println!("    - Enum");
+                }
+            }
             let this_class = read_u16(&mut reader);
             let super_class = read_u16(&mut reader);
-            if debug {
+            if verbose {
                 println!("INFO: ThisClass= {}", this_class);
                 println!("INFO: SuperClass= {}", super_class);
             }
 
-            parse_interfaces(&mut reader, debug);
-            parse_fields(&mut reader, &constant_pool, debug);
+            parse_interfaces(&mut reader, verbose);
+            parse_fields(&mut reader, &constant_pool, verbose);
             parse_methods(&mut reader, &constant_pool);
             parse_attributes(&mut reader, &constant_pool, false);
         }
