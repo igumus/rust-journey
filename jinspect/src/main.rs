@@ -28,14 +28,17 @@ impl Header {
     }
 }
 
-fn parse_interfaces(reader: &mut BufReader<File>, pool: &ConstantPool) -> Vec<String> {
+fn parse_interfaces(reader: &mut BufReader<File>, pool: &ConstantPool) -> Option<Vec<String>> {
     let count = read_u16(reader);
-    let mut acc = Vec::<String>::with_capacity(count as usize);
-    for _ in 0..count {
-        let index = read_u16(reader);
-        acc.push(pool.resolve(index));
+    if count > 0 {
+        let mut acc = Vec::<String>::with_capacity(count as usize);
+        for _ in 0..count {
+            let index = read_u16(reader);
+            acc.push(pool.resolve(index));
+        }
+        return Some(acc);
     }
-    acc
+    None
 }
 
 struct RawAttribute(String, u32, Vec<u8>);
@@ -163,12 +166,17 @@ fn main() {
                     }
                 }
 
-                println!("INFO: Interfaces= {}", interfaces.capacity());
-                for (i, item) in interfaces.iter().enumerate() {
-                    println!("    {:02} - {}", i, item);
+                match interfaces {
+                    Some(items) => {
+                        println!("INFO: Interfaces= {}", items.capacity());
+                        for (i, item) in items.iter().enumerate() {
+                            println!("    {:02} {} ", i, item);
+                        }
+                    }
+                    None => println!("INFO: Interfaces= 0"),
                 }
 
-                match &fields {
+                match fields {
                     Some(items) => {
                         println!("INFO: Fields= {}", items.capacity());
                         for (i, item) in items.iter().enumerate() {
@@ -180,7 +188,8 @@ fn main() {
                     }
                     None => println!("INFO: Fields= 0"),
                 }
-                match &methods {
+
+                match methods {
                     Some(items) => {
                         println!("INFO: Methods= {}", items.capacity());
                         for (i, item) in items.iter().enumerate() {
@@ -192,7 +201,7 @@ fn main() {
                     }
                     None => println!("INFO: Methods= 0"),
                 }
-                match &attributes {
+                match attributes {
                     Some(items) => {
                         println!("INFO: Attributes= {}", items.capacity());
                         for (i, item) in items.iter().enumerate() {
