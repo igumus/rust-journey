@@ -98,7 +98,6 @@ fn parse_methods(reader: &mut BufReader<File>, pool: &ConstantPool) -> Option<Ve
     }
 }
 
-// TODO: should not return an option
 fn parse_this_class(reader: &mut BufReader<File>, pool: &ConstantPool) -> Option<ConstantPoolItem> {
     let class_index = read_u16(reader);
     if let &ConstantPoolItem::Class(_) = pool.get(class_index) {
@@ -107,7 +106,6 @@ fn parse_this_class(reader: &mut BufReader<File>, pool: &ConstantPool) -> Option
     None
 }
 
-// TODO: should not return an option
 fn parse_super_class(
     reader: &mut BufReader<File>,
     pool: &ConstantPool,
