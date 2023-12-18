@@ -62,7 +62,7 @@ fn parse_attributes(
     }
 }
 
-struct Field(AccessFlag, u16, u16, Option<Vec<RawAttribute>>);
+struct Field(AccessFlag, String, String, Option<Vec<RawAttribute>>);
 fn parse_fields(reader: &mut BufReader<File>, pool: &ConstantPool) -> Option<Vec<Field>> {
     let count = read_u16(reader);
     if count > 0 {
@@ -71,8 +71,10 @@ fn parse_fields(reader: &mut BufReader<File>, pool: &ConstantPool) -> Option<Vec
             let flags = AccessFlag::parse_field_level(reader);
             let name_index = read_u16(reader);
             let desc_index = read_u16(reader);
+            let name = pool.resolve(name_index);
+            let desc = pool.resolve(desc_index);
             let attrs = parse_attributes(reader, pool);
-            acc.push(Field(flags, name_index, desc_index, attrs));
+            acc.push(Field(flags, name, desc, attrs));
         }
         Some(acc)
     } else {
@@ -80,7 +82,7 @@ fn parse_fields(reader: &mut BufReader<File>, pool: &ConstantPool) -> Option<Vec
     }
 }
 
-struct Method(AccessFlag, u16, u16, Option<Vec<RawAttribute>>);
+struct Method(AccessFlag, String, String, Option<Vec<RawAttribute>>);
 fn parse_methods(reader: &mut BufReader<File>, pool: &ConstantPool) -> Option<Vec<Method>> {
     let count = read_u16(reader);
     if count > 0 {
@@ -89,8 +91,10 @@ fn parse_methods(reader: &mut BufReader<File>, pool: &ConstantPool) -> Option<Ve
             let flags = AccessFlag::parse_method_level(reader);
             let name_index = read_u16(reader);
             let desc_index = read_u16(reader);
+            let name = pool.resolve(name_index);
+            let desc = pool.resolve(desc_index);
             let attrs = parse_attributes(reader, pool);
-            acc.push(Method(flags, name_index, desc_index, attrs));
+            acc.push(Method(flags, name, desc, attrs));
         }
         Some(acc)
     } else {
@@ -179,9 +183,7 @@ fn main() {
                         println!("INFO: Fields= {}", items.capacity());
                         for (i, item) in items.iter().enumerate() {
                             let flag = item.0.to_string();
-                            let name = constant_pool.resolve(item.1);
-                            let desc = constant_pool.resolve(item.2);
-                            println!("    {:02} {} {} {}", i, flag, name, desc);
+                            println!("    {:02} {} {} {}", i, flag, item.1, item.2);
                             let attributes = &item.3;
                             match attributes {
                                 Some(items) => {
@@ -205,9 +207,7 @@ fn main() {
                         println!("INFO: Methods= {}", items.capacity());
                         for (i, item) in items.iter().enumerate() {
                             let flag = item.0.to_string();
-                            let name = constant_pool.resolve(item.1);
-                            let desc = constant_pool.resolve(item.2);
-                            println!("    {:02} {} {} {}", i, flag, name, desc);
+                            println!("    {:02} {} {} {}", i, flag, item.1, item.2);
                             let attributes = &item.3;
                             match attributes {
                                 Some(items) => {
