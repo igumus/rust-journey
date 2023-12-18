@@ -38,101 +38,60 @@ fn parse_interfaces(reader: &mut BufReader<File>, pool: &ConstantPool) -> Vec<St
     acc
 }
 
-fn parse_attributes(reader: &mut BufReader<File>, pool: &ConstantPool, internal: bool) {
+struct RawAttribute(String, u32, Vec<u8>);
+fn parse_attributes(
+    reader: &mut BufReader<File>,
+    pool: &ConstantPool,
+) -> Option<Vec<RawAttribute>> {
     let count = read_u16(reader);
-    if !internal {
-        println!("INFO: Attributes= {}", count);
-    }
-    for i in 0..count {
-        let name_index = read_u16(reader);
-        let name = pool.resolve(name_index);
-        let length = read_u32(reader);
-        if name == "Code" {
-            let _max_stack = read_u16(reader);
-            let _max_locals = read_u16(reader);
-            let code_length = read_u32(reader);
-            let _code = read_n(reader, code_length as usize);
-            let exception_table_len = read_u16(reader);
-            for _ in 0..exception_table_len {
-                let _start_pc = read_u16(reader);
-                let _end_pc = read_u16(reader);
-                let _handler_pc = read_u16(reader);
-                let _catch_type = read_u16(reader);
-            }
-
-            // println!( "MaxStack: {}, MaxLocals: {}, CodeLen: {}, Array: {:?}", max_stack, max_locals, code_length, code);
-            parse_attributes(reader, pool, true);
-        } else if name == "LineNumberTable" {
-            let lnt_length = read_u16(reader);
-            for _ in 0..lnt_length {
-                let _start_pc = read_u16(reader);
-                let _line_number = read_u16(reader);
-                // println!( "LineNumberTable= start: {}, lineNumber: {}", start_pc, line_number);
-            }
-        } else if name == "SourceFile" {
-            let source_file_index = read_u16(reader);
-            let source_file_name = pool.resolve(source_file_index);
-            if !internal {
-                println!("    Attribute: {:02} - SourceFile: {}", i, source_file_name);
-            } else {
-                println!(
-                    "        Attribute: {:02} - SourceFile: {}",
-                    i, source_file_name
-                );
-            }
-        } else {
-            let _val = read_n(reader, length as usize);
-            if !internal {
-                println!("    Attribute: {:02} - Name: {} LEN:{}", i, name, length);
-            } else {
-                println!(
-                    "        Attribute: {:02} - Name: {} LEN:{}",
-                    i, name, length
-                );
-            }
+    if count > 0 {
+        let mut acc = Vec::<RawAttribute>::with_capacity(count as usize);
+        for _i in 0..count {
+            let name_index = read_u16(reader);
+            let name = pool.resolve(name_index);
+            let length = read_u32(reader);
+            let val = read_n(reader, length as usize);
+            acc.push(RawAttribute(name, length, val));
         }
+        Some(acc)
+    } else {
+        None
     }
 }
 
-fn parse_fields(reader: &mut BufReader<File>, pool: &ConstantPool, debug: bool) {
+struct Field(AccessFlag, u16, u16, Option<Vec<RawAttribute>>);
+fn parse_fields(reader: &mut BufReader<File>, pool: &ConstantPool) -> Option<Vec<Field>> {
     let count = read_u16(reader);
-    if debug {
-        println!("INFO: Fields= {}", count);
-    }
-    for i in 0..count {
-        let flags = AccessFlag::parse_field_level(reader);
-        let name_index = read_u16(reader);
-        let desc_index = read_u16(reader);
-        if debug {
-            println!(
-                "    Field: {:02} - AF: {}, NI: {} DI: {}",
-                i,
-                flags.to_string(),
-                name_index,
-                desc_index
-            );
+    if count > 0 {
+        let mut acc = Vec::<Field>::with_capacity(count as usize);
+        for _ in 0..count {
+            let flags = AccessFlag::parse_field_level(reader);
+            let name_index = read_u16(reader);
+            let desc_index = read_u16(reader);
+            let attrs = parse_attributes(reader, pool);
+            acc.push(Field(flags, name_index, desc_index, attrs));
         }
-        parse_attributes(reader, pool, true);
+        Some(acc)
+    } else {
+        None
     }
 }
 
-fn parse_methods(reader: &mut BufReader<File>, pool: &ConstantPool) {
+struct Method(AccessFlag, u16, u16, Option<Vec<RawAttribute>>);
+fn parse_methods(reader: &mut BufReader<File>, pool: &ConstantPool) -> Option<Vec<Method>> {
     let count = read_u16(reader);
-    println!("INFO: Methods= {}", count);
-    for i in 0..count {
-        let flags = AccessFlag::parse_method_level(reader);
-        let name_index = read_u16(reader);
-        let name = pool.resolve(name_index);
-        let desc_index = read_u16(reader);
-        let desc = pool.resolve(desc_index);
-        println!(
-            "    Method: {:02} - AF: {}, Name: {} DI: {}",
-            i,
-            flags.to_string(),
-            name,
-            desc
-        );
-        parse_attributes(reader, pool, true);
+    if count > 0 {
+        let mut acc = Vec::<Method>::with_capacity(count as usize);
+        for _ in 0..count {
+            let flags = AccessFlag::parse_method_level(reader);
+            let name_index = read_u16(reader);
+            let desc_index = read_u16(reader);
+            let attrs = parse_attributes(reader, pool);
+            acc.push(Method(flags, name_index, desc_index, attrs));
+        }
+        Some(acc)
+    } else {
+        None
     }
 }
 
@@ -188,9 +147,9 @@ fn main() {
             let this_class = parse_this_class(&mut reader, &constant_pool);
             let super_class = parse_super_class(&mut reader, &constant_pool);
             let interfaces = parse_interfaces(&mut reader, &constant_pool);
-            parse_fields(&mut reader, &constant_pool, verbose);
-            parse_methods(&mut reader, &constant_pool);
-            parse_attributes(&mut reader, &constant_pool, false);
+            let fields = parse_fields(&mut reader, &constant_pool);
+            let methods = parse_methods(&mut reader, &constant_pool);
+            let attributes = parse_attributes(&mut reader, &constant_pool);
 
             if verbose {
                 header.print();
@@ -207,6 +166,42 @@ fn main() {
                 println!("INFO: Interfaces= {}", interfaces.capacity());
                 for (i, item) in interfaces.iter().enumerate() {
                     println!("    {:02} - {}", i, item);
+                }
+
+                match &fields {
+                    Some(items) => {
+                        println!("INFO: Fields= {}", items.capacity());
+                        for (i, item) in items.iter().enumerate() {
+                            let flag = item.0.to_string();
+                            let name = constant_pool.resolve(item.1);
+                            let desc = constant_pool.resolve(item.2);
+                            println!("    {:02} {} {} {}", i, flag, name, desc);
+                        }
+                    }
+                    None => println!("INFO: Fields= 0"),
+                }
+                match &methods {
+                    Some(items) => {
+                        println!("INFO: Methods= {}", items.capacity());
+                        for (i, item) in items.iter().enumerate() {
+                            let flag = item.0.to_string();
+                            let name = constant_pool.resolve(item.1);
+                            let desc = constant_pool.resolve(item.2);
+                            println!("    {:02} {} {} {}", i, flag, name, desc);
+                        }
+                    }
+                    None => println!("INFO: Methods= 0"),
+                }
+                match &attributes {
+                    Some(items) => {
+                        println!("INFO: Attributes= {}", items.capacity());
+                        for (i, item) in items.iter().enumerate() {
+                            let name = item.0.to_string();
+                            let len = item.1;
+                            println!("    {:02} {} {}", i, name, len);
+                        }
+                    }
+                    None => println!("INFO: Attributes= 0"),
                 }
             }
         }
