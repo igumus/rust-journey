@@ -195,6 +195,19 @@ fn main() {
                             let name = constant_pool.resolve(item.1);
                             let desc = constant_pool.resolve(item.2);
                             println!("    {:02} {} {} {}", i, flag, name, desc);
+                            let attributes = &item.3;
+                            match attributes {
+                                Some(items) => {
+                                    println!("      Method Attributes= {}", items.capacity());
+                                    for (i, item) in items.iter().enumerate() {
+                                        let name = item.0.to_string();
+                                        let len = item.1;
+                                        println!("        {:02} {} {}", i, name, len);
+                                    }
+                                }
+
+                                None => println!("      Method Attributes= 0"),
+                            }
                         }
                     }
                     None => println!("INFO: Methods= 0"),
