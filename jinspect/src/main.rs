@@ -1,7 +1,7 @@
-use clap::{Arg, ArgAction, Command};
 use std::fs::File;
 use std::io::BufReader;
 
+mod cli;
 mod flag;
 mod pool;
 mod reader;
@@ -122,52 +122,8 @@ fn parse_super_class(
 }
 
 fn main() {
-    let matches = Command::new("jinspect")
-        .version("0.1.0")
-        .about("inspects java class files")
-        .arg(
-            Arg::new("file")
-                .short('f')
-                .long("file")
-                .default_value("samples/App.class"),
-        )
-        .arg(
-            Arg::new("verbose")
-                .short('v')
-                .long("verbose")
-                .value_parser([
-                    "all",
-                    "header",
-                    "clazz",
-                    "pool",
-                    "method",
-                    "field",
-                    "attribute",
-                ])
-                .num_args(0..)
-                .action(ArgAction::Set)
-                .default_value("all")
-                .default_missing_value("all")
-                .value_delimiter(',')
-                .help("Print all information of class file"), // .action(ArgAction::SetTrue),
-        )
-        .get_matches();
-
-    let file_path = matches.get_one::<String>("file").expect("required");
-    let verbose_mode = matches
-        .get_many::<String>("verbose")
-        .unwrap()
-        .collect::<Vec<_>>();
-    let verbose_full = verbose_mode.contains(&&"all".to_string());
-    let verbose_header = verbose_mode.contains(&&"header".to_string());
-    let verbose_class = verbose_mode.contains(&&"clazz".to_string());
-    let verbose_pool = verbose_mode.contains(&&"pool".to_string());
-    let verbose_interfaces = verbose_mode.contains(&&"interface".to_string());
-    let verbose_method = verbose_mode.contains(&&"method".to_string());
-    let verbose_fields = verbose_mode.contains(&&"field".to_string());
-    let verbose_attributes = verbose_mode.contains(&&"attribute".to_string());
-
-    match File::open(file_path) {
+    let (file_path, verbose) = cli::parse_cli_args();
+    match File::open(&file_path) {
         Ok(file) => {
             let mut reader = BufReader::new(file);
 
@@ -181,11 +137,11 @@ fn main() {
             let methods = parse_methods(&mut reader, &constant_pool);
             let attributes = parse_attributes(&mut reader, &constant_pool);
 
-            if verbose_full || verbose_header {
+            if verbose.can_verbose_header() {
                 header.print();
             }
 
-            if verbose_full || verbose_class {
+            if verbose.can_verbose_class() {
                 acc_class.print();
                 if let Some(this_item) = this_class {
                     println!("INFO: ThisClass= {}", this_item.resolve(&constant_pool));
@@ -195,11 +151,11 @@ fn main() {
                 }
             }
 
-            if verbose_full || verbose_pool {
+            if verbose.can_verbose_pool() {
                 constant_pool.print();
             }
 
-            if verbose_full || verbose_interfaces {
+            if verbose.can_verbose_interfaces() {
                 match interfaces {
                     Some(items) => {
                         println!("INFO: Interfaces= {}", items.capacity());
@@ -211,7 +167,7 @@ fn main() {
                 }
             }
 
-            if verbose_full || verbose_fields {
+            if verbose.can_verbose_fields() {
                 match fields {
                     Some(items) => {
                         println!("INFO: Fields= {}", items.capacity());
@@ -237,7 +193,7 @@ fn main() {
                 }
             }
 
-            if verbose_full || verbose_method {
+            if verbose.can_verbose_methods() {
                 match methods {
                     Some(items) => {
                         println!("INFO: Methods= {}", items.capacity());
@@ -262,7 +218,7 @@ fn main() {
                     None => println!("INFO: Methods= 0"),
                 }
             }
-            if verbose_full || verbose_attributes {
+            if verbose.can_verbose_attributes() {
                 match attributes {
                     Some(items) => {
                         println!("INFO: Attributes= {}", items.capacity());
