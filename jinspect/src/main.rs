@@ -135,62 +135,37 @@ fn main() {
             Arg::new("verbose")
                 .short('v')
                 .long("verbose")
-                .help("Print all information of class file")
-                .action(ArgAction::SetTrue),
-        )
-        .arg(
-            Arg::new("header")
-                .long("header")
-                .help("Print header information of class file")
-                .action(ArgAction::SetTrue),
-        )
-        .arg(
-            Arg::new("clazz")
-                .long("clazz")
-                .help("Print class information of class file")
-                .action(ArgAction::SetTrue),
-        )
-        .arg(
-            Arg::new("pool")
-                .long("pool")
-                .help("Print constant pool information of class file")
-                .action(ArgAction::SetTrue),
-        )
-        .arg(
-            Arg::new("interface")
-                .long("interface")
-                .help("Print interface information of class file")
-                .action(ArgAction::SetTrue),
-        )
-        .arg(
-            Arg::new("method")
-                .long("method")
-                .help("Print method information of class file")
-                .action(ArgAction::SetTrue),
-        )
-        .arg(
-            Arg::new("field")
-                .long("field")
-                .help("Print field information of class file")
-                .action(ArgAction::SetTrue),
-        )
-        .arg(
-            Arg::new("attribute")
-                .long("attribute")
-                .help("Print related attribute information of class file")
-                .action(ArgAction::SetTrue),
+                .value_parser([
+                    "all",
+                    "header",
+                    "clazz",
+                    "pool",
+                    "method",
+                    "field",
+                    "attribute",
+                ])
+                .num_args(0..)
+                .action(ArgAction::Set)
+                .default_value("all")
+                .default_missing_value("all")
+                .value_delimiter(',')
+                .help("Print all information of class file"), // .action(ArgAction::SetTrue),
         )
         .get_matches();
 
     let file_path = matches.get_one::<String>("file").expect("required");
-    let verbose_full = matches.get_flag("verbose");
-    let verbose_header = matches.get_flag("header");
-    let verbose_class = matches.get_flag("clazz");
-    let verbose_pool = matches.get_flag("pool");
-    let verbose_interfaces = matches.get_flag("interface");
-    let verbose_method = matches.get_flag("method");
-    let verbose_fields = matches.get_flag("field");
-    let verbose_attributes = matches.get_flag("attribute");
+    let verbose_mode = matches
+        .get_many::<String>("verbose")
+        .unwrap()
+        .collect::<Vec<_>>();
+    let verbose_full = verbose_mode.contains(&&"all".to_string());
+    let verbose_header = verbose_mode.contains(&&"header".to_string());
+    let verbose_class = verbose_mode.contains(&&"clazz".to_string());
+    let verbose_pool = verbose_mode.contains(&&"pool".to_string());
+    let verbose_interfaces = verbose_mode.contains(&&"interface".to_string());
+    let verbose_method = verbose_mode.contains(&&"method".to_string());
+    let verbose_fields = verbose_mode.contains(&&"field".to_string());
+    let verbose_attributes = verbose_mode.contains(&&"attribute".to_string());
 
     match File::open(file_path) {
         Ok(file) => {
