@@ -140,7 +140,7 @@ fn main() {
         .get_matches();
 
     let file_path = matches.get_one::<String>("file").expect("required");
-    let verbose = matches.get_flag("verbose");
+    let verbose_full = matches.get_flag("verbose");
 
     match File::open(file_path) {
         Ok(file) => {
@@ -156,7 +156,7 @@ fn main() {
             let methods = parse_methods(&mut reader, &constant_pool);
             let attributes = parse_attributes(&mut reader, &constant_pool);
 
-            if verbose {
+            if verbose_full {
                 header.print();
                 constant_pool.print();
                 acc_class.print();
