@@ -135,12 +135,62 @@ fn main() {
             Arg::new("verbose")
                 .short('v')
                 .long("verbose")
+                .help("Print all information of class file")
+                .action(ArgAction::SetTrue),
+        )
+        .arg(
+            Arg::new("header")
+                .long("header")
+                .help("Print header information of class file")
+                .action(ArgAction::SetTrue),
+        )
+        .arg(
+            Arg::new("clazz")
+                .long("clazz")
+                .help("Print class information of class file")
+                .action(ArgAction::SetTrue),
+        )
+        .arg(
+            Arg::new("pool")
+                .long("pool")
+                .help("Print constant pool information of class file")
+                .action(ArgAction::SetTrue),
+        )
+        .arg(
+            Arg::new("interface")
+                .long("interface")
+                .help("Print interface information of class file")
+                .action(ArgAction::SetTrue),
+        )
+        .arg(
+            Arg::new("method")
+                .long("method")
+                .help("Print method information of class file")
+                .action(ArgAction::SetTrue),
+        )
+        .arg(
+            Arg::new("field")
+                .long("field")
+                .help("Print field information of class file")
+                .action(ArgAction::SetTrue),
+        )
+        .arg(
+            Arg::new("attribute")
+                .long("attribute")
+                .help("Print related attribute information of class file")
                 .action(ArgAction::SetTrue),
         )
         .get_matches();
 
     let file_path = matches.get_one::<String>("file").expect("required");
     let verbose_full = matches.get_flag("verbose");
+    let verbose_header = matches.get_flag("header");
+    let verbose_class = matches.get_flag("clazz");
+    let verbose_pool = matches.get_flag("pool");
+    let verbose_interfaces = matches.get_flag("interface");
+    let verbose_method = matches.get_flag("method");
+    let verbose_fields = matches.get_flag("field");
+    let verbose_attributes = matches.get_flag("attribute");
 
     match File::open(file_path) {
         Ok(file) => {
@@ -156,18 +206,25 @@ fn main() {
             let methods = parse_methods(&mut reader, &constant_pool);
             let attributes = parse_attributes(&mut reader, &constant_pool);
 
-            if verbose_full {
+            if verbose_full || verbose_header {
                 header.print();
-                constant_pool.print();
-                acc_class.print();
+            }
 
+            if verbose_full || verbose_class {
+                acc_class.print();
                 if let Some(this_item) = this_class {
                     println!("INFO: ThisClass= {}", this_item.resolve(&constant_pool));
                     if let Some(super_item) = super_class {
                         println!("INFO: SuperClass= {}", super_item.resolve(&constant_pool));
                     }
                 }
+            }
 
+            if verbose_full || verbose_pool {
+                constant_pool.print();
+            }
+
+            if verbose_full || verbose_interfaces {
                 match interfaces {
                     Some(items) => {
                         println!("INFO: Interfaces= {}", items.capacity());
@@ -177,7 +234,9 @@ fn main() {
                     }
                     None => println!("INFO: Interfaces= 0"),
                 }
+            }
 
+            if verbose_full || verbose_fields {
                 match fields {
                     Some(items) => {
                         println!("INFO: Fields= {}", items.capacity());
@@ -201,7 +260,9 @@ fn main() {
                     }
                     None => println!("INFO: Fields= 0"),
                 }
+            }
 
+            if verbose_full || verbose_method {
                 match methods {
                     Some(items) => {
                         println!("INFO: Methods= {}", items.capacity());
@@ -225,6 +286,8 @@ fn main() {
                     }
                     None => println!("INFO: Methods= 0"),
                 }
+            }
+            if verbose_full || verbose_attributes {
                 match attributes {
                     Some(items) => {
                         println!("INFO: Attributes= {}", items.capacity());
