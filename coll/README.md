@@ -3,16 +3,22 @@
 Simple collections library for educational purposes.
 
 ## Objectives
-- ... TBD ...
+
+- Pointer types: `&`, `&mut`, `Box`, `Rc` 
+- Ownership, borrowing, inherited mutability, interior mutability, Copy
+- Pattern matching, generics, destructors
+- Testing
+- Unsafe Rust: raw pointers, aliasing, stacked borrows, UnsafeCell, variance
+- ...
 
 ## Quick Start
 
-Compile java file:
 ```console
-$ cargo test
+$ make test
 ```
 
 ## Tips
+
 - To print during tests?
     ```console
     $ cargo test -- --nocapture
@@ -24,8 +30,10 @@ $ cargo test
     $ cargo watch "test -- --nocapture"
     ```
 
-## Tasks
+## Notes
+
 - ... TBD ...
 
 ## References
+
 - ... TBD ...
