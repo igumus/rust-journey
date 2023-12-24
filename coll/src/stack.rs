@@ -120,7 +120,7 @@ impl<'a, T> Iterator for IterMut<'a, T> {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use super::Stack;
 
     #[test]
     fn test_stack_creation() {
