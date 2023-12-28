@@ -6,5 +6,6 @@ members = [
     "sketch",
     "jinspect",
     "coll",
+    "mecsv",
 ]
 

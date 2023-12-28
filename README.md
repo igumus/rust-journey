@@ -15,6 +15,7 @@ This repository documents my learning process and progress as I delve into the w
 - [sketch](./sketch/): Simple project for experimenting rust language fundamentals.
 - [jinspect](./jinspect/README.md): Simple project for analyzing java class files.
 - [coll](./coll/README.md): Simple collections library for educational purposes.
+- [mecsv](./mecsv/README.md): Mini expressioned csv.
 
 ## Resources/References
 
