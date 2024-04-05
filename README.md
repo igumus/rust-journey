@@ -16,6 +16,7 @@ This repository documents my learning process and progress as I delve into the w
 - [jinspect](./jinspect/README.md): Simple project for analyzing java class files.
 - [coll](./coll/README.md): Simple collections library for educational purposes.
 - [mecsv](./mecsv/README.md): Mini expressioned csv.
+- [fsm](./fsm/README.md): Finite State Machine examples. 
 
 ## Resources/References
 
