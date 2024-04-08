@@ -8,5 +8,6 @@ members = [
     "coll",
     "mecsv",
     "fsm",
+    "basic-web-server",
 ]
 
