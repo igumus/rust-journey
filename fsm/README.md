@@ -9,12 +9,12 @@ Simple project to experiment FSM (Finite State Machines)
 
 For turnstile:
 ```console
-cargo run --bin turnstile
+$ cargo run --bin turnstile
 ```
 
 For Regex:
 ```console
-cargo run --bin regex
+$ cargo run --bin regex
 ```
 
 ## Examples
