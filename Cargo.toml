@@ -9,5 +9,6 @@ members = [
     "mecsv",
     "fsm",
     "basic-web-server",
+    "memio",
 ]
 

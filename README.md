@@ -18,6 +18,7 @@ This repository documents my learning process and progress as I delve into the w
 - [mecsv](./mecsv/README.md): Mini expressioned csv.
 - [fsm](./fsm/README.md): Finite State Machine examples. 
 - [basic web server](./basic-web-server/README.md): Basic vanilla web server example. 
+- [memio](./memio/README.md): Experiment about Memory-Mapped I/O 
 
 ## Resources/References
 

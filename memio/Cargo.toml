@@ -1,0 +1,27 @@
+[package]
+name = "memio"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "rff"
+path = "src/bin/rff.rs"
+
+[[bin]]
+name = "wipc"
+path = "src/bin/ipc_writer.rs"
+
+[[bin]]
+name = "ripc"
+path = "src/bin/ipc_reader.rs"
+
+[[bin]]
+name = "mutate"
+path = "src/bin/mutate.rs"
+
+[[bin]]
+name = "ringbuf"
+path = "src/bin/ring_buffer.rs"
+
+[dependencies]
+memmap2 = "0.9.4"
