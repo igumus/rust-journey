@@ -7,7 +7,7 @@ mod pool;
 mod reader;
 use crate::flag::AccessFlag;
 use crate::pool::{ConstantPool, ConstantPoolItem};
-use crate::reader::{read_n, read_u16, read_u32};
+use crate::reader::{read_u16, read_u32};
 
 struct Header(u32, u16, u16);
 
@@ -41,7 +41,7 @@ fn parse_interfaces(reader: &mut BufReader<File>, pool: &ConstantPool) -> Option
     None
 }
 
-struct RawAttribute(String, u32, Vec<u8>);
+struct RawAttribute(String, u32);
 fn parse_attributes(
     reader: &mut BufReader<File>,
     pool: &ConstantPool,
@@ -53,8 +53,8 @@ fn parse_attributes(
             let name_index = read_u16(reader);
             let name = pool.resolve(name_index);
             let length = read_u32(reader);
-            let val = read_n(reader, length as usize);
-            acc.push(RawAttribute(name, length, val));
+            // let val = read_n(reader, length as usize);
+            acc.push(RawAttribute(name, length));
         }
         Some(acc)
     } else {
